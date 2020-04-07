@@ -15,5 +15,20 @@ local lq = import "lib/lq.libsonnet";
     'env': {
       'foo': 'bar',
     },
+    'volumeMounts': {
+      "test-data": {
+        "mountPath": "/etc/test/data",
+      },
+    },
+    'emptyDirs': ["test1","test2"],
+    'volumes': {
+      "test-data": {
+        "emptyDir": {}
+      },
+    },
+    'pvcs': [
+      {"name": "test-data", "storage": "2Gi", "accessModes": ["ReadWriteOnce","ReadWriteMany"]},
+      {"name": "test-data2", "storage": "2Gi", "accessModes": ["ReadWriteMany"]},
+    ],
   }, 
 }

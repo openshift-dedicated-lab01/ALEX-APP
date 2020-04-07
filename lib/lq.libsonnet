@@ -7,11 +7,23 @@ local kube = import "kube.libsonnet";
     name:: error "This file assumes a name",
     image:: error "This file assumes an image",
     env:: [],
-
+    volumeMounts:: {},
+    volumes:: {},
+    emptyDirs:: [],
+    
+#    Persistent volume claims format :
+#    [name]: {
+#      storage: 1Gi,
+#      accessModes [], 
+#    }
+#    AccessModes: ReadWriteOnce, ReadOnlyMany, ReadWriteMany
+#    Il utilisera le storage class par defaut
+    pvcs:: [],
 
     local my_app = self,
     serviceAccount: kube.ServiceAccount(my_app.name) {
     },
+    PersistentVolumeClaims: $.createPvcs(my_app.pvcs),
     deployment: kube.Deployment(my_app.name) {
       metadata+: {
           labels+: {
@@ -39,8 +51,10 @@ local kube = import "kube.libsonnet";
                 args_+: my_app.args,
                 args+: my_app.no_values_args,
                 env_+: my_app.env,
+                volumeMounts_+: my_app.volumeMounts,
               },
             },
+            volumes_+: my_app.volumes + $.createEmptyDirs(my_app.emptyDirs),
           },
         },
       },
@@ -49,6 +63,12 @@ local kube = import "kube.libsonnet";
       target_pod: my_app.deployment.spec.template,
     },
   },
+
+  createEmptyDirs(o):: {[kube.hyphenate(n)]: {"emptyDir": {}} for n in o},
+  createPvcs(o):: {
+    [kube.hyphenate(n.name)]: kube.PersistentVolumeClaim(kube.hyphenate(n.name)) {'storage': n.storage, 'spec': {'accessModes': n.accessModes}}  for n in o
+  },  
+
 
   vault_cfg:: {	
     deployment+: {
